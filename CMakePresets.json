@@ -1,0 +1,42 @@
+{
+  "version": 5,
+  "cmakeMinimumRequired": { "major": 3, "minor": 26 },
+  "configurePresets": [
+    {
+      "name": "win64-release",
+      "displayName": "Windows x64 Release",
+      "description": "Configure with Release using Visual Studio 2022 x64",
+      "generator": "Visual Studio 17 2022",
+      "architecture": {
+        "value": "x64"
+      },
+      "binaryDir": "${sourceDir}/build/vs-win64-release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "ARMA3_DIR": "D:/SteamLibrary/steamapps/common/Arma 3",
+        "MOD_DIR": "D:/SteamLibrary/steamapps/common/Arma 3/@intercept-plugin-template",
+        "ADDON_BUILDER_EXE": "D:/SteamLibrary/steamapps/common/Arma 3 Tools/AddonBuilder/AddonBuilder.exe"
+      }
+    },
+    {
+      "name": "win64-debug",
+      "displayName": "Windows x64 Debug",
+      "description": "Configure with Debug using Visual Studio 2022 x64",
+      "generator": "Visual Studio 17 2022",
+      "architecture": {
+        "value": "x64"
+      },
+      "binaryDir": "${sourceDir}/build/vs-win64-debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "ARMA3_DIR": "D:/SteamLibrary/steamapps/common/Arma 3",
+        "MOD_DIR": "D:/SteamLibrary/steamapps/common/Arma 3/@intercept-plugin-template",
+        "ADDON_BUILDER_EXE": "D:/SteamLibrary/steamapps/common/Arma 3 Tools/AddonBuilder/AddonBuilder.exe"
+      }
+    }
+  ],
+  "buildPresets": [
+    { "name": "win64-release", "configurePreset": "win64-release", "configuration": "Release" },
+    { "name": "win64-debug",   "configurePreset": "win64-debug",   "configuration": "Debug" }
+  ]
+}

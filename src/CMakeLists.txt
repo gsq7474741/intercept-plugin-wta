@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.0)
+cmake_minimum_required (VERSION 3.26)
 
 
 file(GLOB_RECURSE INTERCEPT_PLUGIN_SOURCES *.h *.hpp *.c *.cpp)
@@ -25,6 +25,10 @@ if(USE_64BIT_BUILD)
 else()
     set(INTERCEPT_PLUGIN_NAME "${CMAKE_PROJECT_NAME}")
 endif()
+# Propagate target name to parent scope for packaging step
+set(INTERCEPT_PLUGIN_NAME "${INTERCEPT_PLUGIN_NAME}" PARENT_SCOPE)
+# And cache it globally to ensure availability during generation
+set(INTERCEPT_PLUGIN_NAME "${INTERCEPT_PLUGIN_NAME}" CACHE INTERNAL "Intercept plugin target name")
 
 add_definitions(/DINTERCEPT_NO_THREAD_SAFETY)
 
@@ -41,6 +45,14 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${INTERCEPT_INCLUDE_PATH})
 
 set_target_properties(${INTERCEPT_PLUGIN_NAME} PROPERTIES PREFIX "")
 set_target_properties(${INTERCEPT_PLUGIN_NAME} PROPERTIES FOLDER "${CMAKE_PROJECT_NAME}")
+
+# Post-build: copy DLL to mod intercept folder (uses MOD_DIR from parent cache)
+add_custom_command(TARGET ${INTERCEPT_PLUGIN_NAME} POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E make_directory "${MOD_DIR}/intercept"
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:${INTERCEPT_PLUGIN_NAME}> "${MOD_DIR}/intercept/$<TARGET_FILE_NAME:${INTERCEPT_PLUGIN_NAME}>"
+  COMMENT "Copying plugin DLL to ${MOD_DIR}/intercept"
+  VERBATIM
+)
 
 if(CMAKE_COMPILER_IS_GNUCXX)
 	set(CMAKE_CXX_FLAGS "-std=c++1z -O2 -s -fPIC -fpermissive -static-libgcc -static-libstdc++")#-march=i686 -m32

@@ -1,12 +1,12 @@
 class CfgPatches {
-	class intercept_template_plugin { //Change this
-		name = "Intercept Template Plugin"; //Change this
+	class wtaPlugin { //Change this
+		name = "wtaPlugin"; //Change this
 		units[] = {};
 		weapons[] = {};
-		requiredVersion = 1.82;
+		requiredVersion = 1.82;		
 		requiredAddons[] = {"intercept_core"};
-		author = "Dedmen"; //Change this
-		authors[] = {"Dedmen"}; //Change this
+		author = "ruko"; //Change this
+		authors[] = {"ruko"}; //Change this
 		url = "https://github.com/intercept/intercept-plugin-template"; //Change this
 		version = "1.0";
 		versionStr = "1.0";
@@ -14,9 +14,9 @@ class CfgPatches {
 	};
 };
 class Intercept {
-    class Dedmen { //Change this. It's either the name of your project if you have more than one plugin. Or just your name.
-        class template_plugin { //Change this.
-            pluginName = "template-plugin"; //Change this.
+    class ruko { //Change this. It's either the name of your project if you have more than one plugin. Or just your name.
+        class wtaPlugin { //Change this.
+            pluginName = "wtaPlugin"; //Change this.
         };
     };
 };
