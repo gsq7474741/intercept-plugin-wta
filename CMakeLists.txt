@@ -3,10 +3,12 @@ cmake_minimum_required (VERSION 3.26)
 #----Make changes here
 
 #This is your project name. And also the filename of the resulting plugin.
+set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}\\scripts\\buildsystems\\vcpkg.cmake")
+message("CMAKE_TOOLCHAIN_FILE: ${CMAKE_TOOLCHAIN_FILE}")
 project (wtaPlugin)
 
 #This setting enables the use of the engine string type instead of converting to std::string.
-#Enabling this results in better performance when handling strings to SQF commands.
+#Enabling this results in better pe+rformance when handling strings to SQF commands.
 option(USE_ENGINE_TYPES "USE_ENGINE_TYPES" OFF)
 
 #----Don't change anything below this line
@@ -39,6 +41,14 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "" FORCE)
 
 add_subdirectory(src)
+
+find_package(GTest CONFIG REQUIRED)
+enable_testing()
+
+# Optional unit tests
+if(EXISTS "${CMAKE_SOURCE_DIR}/tests/CMakeLists.txt")
+  add_subdirectory(tests)
+endif()
 
 # ---------------- Deployment configuration (no hardcoded paths) ----------------
 # 1) Where is Arma 3 installed? Configure via -DARMA3_DIR=...

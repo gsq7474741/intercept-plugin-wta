@@ -1,6 +1,13 @@
 #include <intercept.hpp>
 #include <thread>
 #include <chrono>
+#include <memory>
+#include <glog/logging.h>
+#include "wta/world/world_sampler.hpp"
+#include "wta/exec/executor.hpp"
+#include "wta/orchestrator/orchestrator.hpp"
+#include "wta/net/solver_client.hpp"
+#include "wta/world/event_bus.hpp"
 
 
 int intercept::api_version() { //This is required for the plugin to work.
@@ -20,6 +27,12 @@ void intercept::pre_init() {
 }
 
 using namespace intercept;
+
+static std::unique_ptr<wta::net::ISolverClient> g_solver_client;
+static std::unique_ptr<wta::world::IWorldSampler> g_sampler;
+static std::unique_ptr<wta::exec::IExecutor> g_executor;
+static std::unique_ptr<wta::orch::Orchestrator> g_orchestrator;
+static wta::events::EventBus g_event_bus;
 
 // Our custom function, instructing our follower unit to move to a location near the player every second
 void follow_player(object follower) {
@@ -51,6 +64,9 @@ void follow_player(object follower) {
 
 // This function is exported and is called by the host at the end of mission initialization.
 void intercept::post_init() {
+    google::InitGoogleLogging("wtaPlugin");
+    LOG(INFO) << "WTA plugin post_init starting...";
+    
     // Get the player object and store it
     auto player = sqf::player();
     // Get the position of the player, returned as a Vector3 in PositionAGLS format
@@ -79,4 +95,19 @@ void intercept::post_init() {
 
     // Allow that thread to execute independent of the Arma 3 thread
     follower_thread.detach();
+
+    // Bootstrap WTA orchestrator
+    // LOG(INFO) << "Initializing WTA orchestrator...";
+    sqf::system_chat("WTA: Initializing orchestrator...");
+    sqf::diag_log("WTA: Initializing orchestrator...");
+    wta::net::ZmqSolverClientOptions zmq_opts{};
+    zmq_opts.endpoint = "tcp://127.0.0.1:5555";
+    g_solver_client = wta::net::make_zmq_solver_client(zmq_opts);
+    g_sampler = wta::world::make_intercept_world_sampler();
+    g_executor = wta::exec::make_intercept_executor();
+    g_orchestrator = std::make_unique<wta::orch::Orchestrator>(g_event_bus, *g_solver_client, *g_sampler, *g_executor);
+    g_orchestrator->start();
+    // LOG(INFO) << "WTA plugin initialized successfully";
+    sqf::system_chat("WTA: Plugin initialized successfully!");
+    sqf::diag_log("WTA: Plugin initialized successfully!");
 }

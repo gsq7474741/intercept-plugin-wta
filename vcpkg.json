@@ -1,0 +1,8 @@
+{
+  "dependencies": [
+    "fmt",
+    "zeromq",
+    "glog",
+    "gtest"
+  ]
+}

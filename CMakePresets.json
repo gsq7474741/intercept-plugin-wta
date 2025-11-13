@@ -13,6 +13,7 @@
       "binaryDir": "${sourceDir}/build/vs-win64-release",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
         "ARMA3_DIR": "D:/SteamLibrary/steamapps/common/Arma 3",
         "MOD_DIR": "D:/SteamLibrary/steamapps/common/Arma 3/@intercept-plugin-template",
         "ADDON_BUILDER_EXE": "D:/SteamLibrary/steamapps/common/Arma 3 Tools/AddonBuilder/AddonBuilder.exe"
@@ -29,6 +30,7 @@
       "binaryDir": "${sourceDir}/build/vs-win64-debug",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
         "ARMA3_DIR": "D:/SteamLibrary/steamapps/common/Arma 3",
         "MOD_DIR": "D:/SteamLibrary/steamapps/common/Arma 3/@intercept-plugin-template",
         "ADDON_BUILDER_EXE": "D:/SteamLibrary/steamapps/common/Arma 3 Tools/AddonBuilder/AddonBuilder.exe"
