@@ -4,6 +4,20 @@
 #include "types.hpp"
 #include "config.hpp"
 
+/**
+ * @file solver_messages.hpp
+ * @brief C++消息包装器 - 便于在代码中使用
+ * 
+ * 注意：真正的消息定义在 proto/wta_messages.proto
+ * 
+ * 这个文件提供的C++结构体只是便利包装器，用于：
+ * 1. 在C++代码中方便地构造消息
+ * 2. 避免直接依赖protobuf生成的类型
+ * 
+ * 序列化/反序列化由 wta/net/protobuf_adapter.hpp 负责
+ * 所有ZMQ通信统一使用Protobuf二进制格式
+ */
+
 namespace wta::proto {
 
 // ==================== 消息类型 ====================

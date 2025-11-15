@@ -108,7 +108,67 @@ inline wta::types::TargetKind from_proto_kind(wta::pb::TargetKind kind) {
     }
 }
 
+// ==================== 消息类型转换：C++ → Protobuf ====================
+
+inline void to_proto(const wta::proto::StatusReportEvent& from, wta::pb::StatusReportEvent* to) {
+    to->set_timestamp(from.timestamp);
+    for (const auto& platform : from.platforms) {
+        auto* pb_platform = to->add_platforms();
+        to_proto(platform, pb_platform);
+    }
+    for (const auto& target : from.targets) {
+        auto* pb_target = to->add_targets();
+        to_proto(target, pb_target);
+    }
+}
+
+inline void to_proto(const wta::proto::EntityKilledEvent& from, wta::pb::EntityKilledEvent* to) {
+    to->set_timestamp(from.timestamp);
+    to->set_entity_id(from.entity_id);
+    to->set_entity_type(from.entity_type);
+    to->set_killed_by(from.killed_by);
+}
+
+inline void to_proto(const wta::proto::DamageEvent& from, wta::pb::DamageEvent* to) {
+    to->set_timestamp(from.timestamp);
+    to->set_entity_id(from.entity_id);
+    to->set_entity_type(from.entity_type);
+    to->set_damage_amount(from.damage_amount);
+    to->set_source(from.source);
+}
+
+inline void to_proto(const wta::proto::FiredEvent& from, wta::pb::FiredEvent* to) {
+    to->set_timestamp(from.timestamp);
+    to->set_platform_id(from.platform_id);
+    to->set_target_id(from.target_id);
+    to->set_weapon(from.weapon);
+    to->set_ammo_left(from.ammo_left);
+}
+
+inline void to_proto(const wta::proto::PlanRequest& from, wta::pb::PlanRequest* to) {
+    to->set_timestamp(from.timestamp);
+    to->set_reason(from.reason);
+    for (const auto& platform : from.platforms) {
+        auto* pb_platform = to->add_platforms();
+        to_proto(platform, pb_platform);
+    }
+    for (const auto& target : from.targets) {
+        auto* pb_target = to->add_targets();
+        to_proto(target, pb_target);
+    }
+}
+
+// ==================== Protobuf → C++ 原生类型 ====================
+
+inline void from_proto(const wta::pb::PlanStats& from, wta::proto::PlanStats& to) {
+    to.computation_time = from.computation_time();
+    to.iterations = from.iterations();
+    to.is_valid = from.is_valid();
+    to.coverage_rate = from.coverage_rate();
+}
+
 inline void from_proto(const wta::pb::PlanResponse& from, wta::proto::PlanResponse& to) {
+    to.type = "plan_response";
     to.status = from.status();
     to.timestamp = from.timestamp();
     to.best_fitness = from.best_fitness();
@@ -121,25 +181,91 @@ inline void from_proto(const wta::pb::PlanResponse& from, wta::proto::PlanRespon
     
     to.n_platforms = from.n_platforms();
     to.n_targets = from.n_targets();
-    to.stats.computation_time = from.stats().computation_time();
-    to.stats.iterations = from.stats().iterations();
-    to.stats.is_valid = from.stats().is_valid();
-    to.stats.coverage_rate = from.stats().coverage_rate();
+    from_proto(from.stats(), to.stats);
     to.ttl_sec = from.ttl_sec();
     to.error_msg = from.error_msg();
 }
 
 // ==================== 序列化/反序列化辅助函数 ====================
 
+// 序列化任意protobuf消息到二进制字符串
 inline std::string serialize_protobuf(const google::protobuf::Message& msg) {
     std::string output;
     msg.SerializeToString(&output);
     return output;
 }
 
+// 从二进制字符串反序列化protobuf消息
 template<typename T>
 inline bool deserialize_protobuf(const std::string& data, T& msg) {
     return msg.ParseFromString(data);
+}
+
+// ==================== WTAMessage包装器序列化 ====================
+
+// 将StatusReportEvent序列化为WTAMessage
+inline std::string serialize_status_report(const wta::proto::StatusReportEvent& event) {
+    wta::pb::StatusReportEvent pb_event;
+    to_proto(event, &pb_event);
+    
+    wta::pb::WTAMessage msg;
+    *msg.mutable_status_report() = pb_event;
+    return serialize_protobuf(msg);
+}
+
+// 将EntityKilledEvent序列化为WTAMessage
+inline std::string serialize_entity_killed(const wta::proto::EntityKilledEvent& event) {
+    wta::pb::EntityKilledEvent pb_event;
+    to_proto(event, &pb_event);
+    
+    wta::pb::WTAMessage msg;
+    *msg.mutable_entity_killed() = pb_event;
+    return serialize_protobuf(msg);
+}
+
+// 将DamageEvent序列化为WTAMessage
+inline std::string serialize_damage(const wta::proto::DamageEvent& event) {
+    wta::pb::DamageEvent pb_event;
+    to_proto(event, &pb_event);
+    
+    wta::pb::WTAMessage msg;
+    *msg.mutable_damage() = pb_event;
+    return serialize_protobuf(msg);
+}
+
+// 将FiredEvent序列化为WTAMessage
+inline std::string serialize_fired(const wta::proto::FiredEvent& event) {
+    wta::pb::FiredEvent pb_event;
+    to_proto(event, &pb_event);
+    
+    wta::pb::WTAMessage msg;
+    *msg.mutable_fired() = pb_event;
+    return serialize_protobuf(msg);
+}
+
+// 将PlanRequest序列化为WTAMessage
+inline std::string serialize_plan_request(const wta::proto::PlanRequest& request) {
+    wta::pb::PlanRequest pb_req;
+    to_proto(request, &pb_req);
+    
+    wta::pb::WTAMessage msg;
+    *msg.mutable_plan_request() = pb_req;
+    return serialize_protobuf(msg);
+}
+
+// 从WTAMessage反序列化PlanResponse
+inline bool deserialize_plan_response(const std::string& data, wta::proto::PlanResponse& response) {
+    wta::pb::WTAMessage msg;
+    if (!deserialize_protobuf(data, msg)) {
+        return false;
+    }
+    
+    if (!msg.has_plan_response()) {
+        return false;
+    }
+    
+    from_proto(msg.plan_response(), response);
+    return true;
 }
 
 } // namespace wta::net

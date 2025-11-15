@@ -9,3 +9,8 @@ add_test(NAME EventBusTest COMMAND wta_test_event_bus)
 add_executable(wta_test_types test_types.cpp)
 target_link_libraries(wta_test_types PRIVATE wta_core GTest::gtest GTest::gtest_main)
 add_test(NAME TypesTest COMMAND wta_test_types)
+
+# Protobuf adapter test
+add_executable(wta_test_protobuf test_protobuf_adapter.cpp)
+target_link_libraries(wta_test_protobuf PRIVATE wta_core GTest::gtest GTest::gtest_main)
+add_test(NAME ProtobufAdapterTest COMMAND wta_test_protobuf)
