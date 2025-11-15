@@ -3,6 +3,7 @@
     "fmt",
     "zeromq",
     "glog",
-    "gtest"
+    "gtest",
+    "protobuf"
   ]
 }

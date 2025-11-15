@@ -5,7 +5,7 @@
 #include <chrono>
 #include <cstring>
 #include <ctime>
-#include <intercept.hpp>
+#include <glog/logging.h>
 
 namespace wta::net {
 
@@ -21,7 +21,28 @@ struct ZmqCtx {
     ~ZmqCtx() { if (ctx) zmq_ctx_term(ctx); }
 };
 
-// 序列化为简单JSON
+// 序列化平台角色
+const char* role_to_string(wta::types::PlatformRole role) {
+    switch (role) {
+        case wta::types::PlatformRole::AntiPersonnel: return "AntiPersonnel";
+        case wta::types::PlatformRole::AntiArmor: return "AntiArmor";
+        case wta::types::PlatformRole::MultiRole: return "MultiRole";
+        default: return "Unknown";
+    }
+}
+
+// 序列化目标类型
+const char* kind_to_string(wta::types::TargetKind kind) {
+    switch (kind) {
+        case wta::types::TargetKind::Infantry: return "Infantry";
+        case wta::types::TargetKind::Armor: return "Armor";
+        case wta::types::TargetKind::SAM: return "SAM";
+        case wta::types::TargetKind::Other: return "Other";
+        default: return "Unknown";
+    }
+}
+
+// 序列化SolveRequest为JSON
 std::string serialize_request(const wta::proto::SolveRequest& req) {
     std::ostringstream oss;
     oss << "{";
@@ -35,14 +56,7 @@ std::string serialize_request(const wta::proto::SolveRequest& req) {
         if (i > 0) oss << ",";
         oss << "{";
         oss << "\"id\":" << p.id << ",";
-        
-        // Role
-        const char* role_str = "Unknown";
-        if (p.role == wta::types::PlatformRole::AntiPersonnel) role_str = "AntiPersonnel";
-        else if (p.role == wta::types::PlatformRole::AntiArmor) role_str = "AntiArmor";
-        else if (p.role == wta::types::PlatformRole::MultiRole) role_str = "MultiRole";
-        oss << "\"role\":\"" << role_str << "\",";
-        
+        oss << "\"role\":\"" << role_to_string(p.role) << "\",";
         oss << "\"pos\":{\"x\":" << p.pos.x << ",\"y\":" << p.pos.y << "},";
         oss << "\"alive\":" << (p.alive ? "true" : "false") << ",";
         oss << "\"hit_prob\":" << p.hit_prob << ",";
@@ -74,15 +88,7 @@ std::string serialize_request(const wta::proto::SolveRequest& req) {
         if (i > 0) oss << ",";
         oss << "{";
         oss << "\"id\":" << t.id << ",";
-        
-        // Kind
-        const char* kind_str = "Unknown";
-        if (t.kind == wta::types::TargetKind::Infantry) kind_str = "Infantry";
-        else if (t.kind == wta::types::TargetKind::Armor) kind_str = "Armor";
-        else if (t.kind == wta::types::TargetKind::SAM) kind_str = "SAM";
-        else if (t.kind == wta::types::TargetKind::Other) kind_str = "Other";
-        oss << "\"kind\":\"" << kind_str << "\",";
-        
+        oss << "\"kind\":\"" << kind_to_string(t.kind) << "\",";
         oss << "\"pos\":{\"x\":" << t.pos.x << ",\"y\":" << t.pos.y << "},";
         oss << "\"alive\":" << (t.alive ? "true" : "false") << ",";
         oss << "\"value\":" << t.value << ",";
@@ -98,44 +104,13 @@ std::string serialize_request(const wta::proto::SolveRequest& req) {
 class ZmqSolverClient final : public ISolverClient {
 public:
     explicit ZmqSolverClient(const ZmqSolverClientOptions& o) : opts_(o) {}
-    
-    // 新接口方法 - 待实现
-    bool report_status(const wta::proto::StatusReportEvent&, milliseconds) override {
-        // TODO: 实现状态上报
-        return true;
-    }
-    
-    bool report_killed(const wta::proto::EntityKilledEvent&, milliseconds) override {
-        // TODO: 实现击毁事件上报
-        return true;
-    }
-    
-    bool report_damage(const wta::proto::DamageEvent&, milliseconds) override {
-        // TODO: 实现伤害事件上报
-        return true;
-    }
-    
-    bool report_fired(const wta::proto::FiredEvent&, milliseconds) override {
-        // TODO: 实现开火事件上报
-        return true;
-    }
-    
-    bool request_plan(const wta::proto::PlanRequest&, wta::proto::PlanResponse&, milliseconds) override {
-        // TODO: 实现规划请求
-        return false;
-    }
-    
-    // 旧接口方法 - 保持向后兼容
     bool solve(const wta::proto::SolveRequest& req, wta::proto::SolveResponse& out, milliseconds timeout) override {
-        char msg[256];
-        sprintf_s(msg, sizeof(msg), "WTA: Sending %d platforms, %d targets to ZMQ", 
-                  (int)req.platforms.size(), (int)req.targets.size());
-        intercept::sqf::diag_log(msg);
+        LOG(INFO) << "Solving: " << req.platforms.size() << " platforms, " << req.targets.size() << " targets";
         
         ZmqCtx ctx;
         void* sock = zmq_socket(ctx.ctx, ZMQ_REQ);
         if (!sock) {
-            intercept::sqf::diag_log("WTA: zmq_socket failed");
+            LOG(ERROR) << "zmq_socket failed";
             return false;
         }
         
@@ -144,42 +119,36 @@ public:
         zmq_setsockopt(sock, ZMQ_SNDTIMEO, &to, sizeof(to));
         
         if (zmq_connect(sock, opts_.endpoint.c_str()) != 0) {
-            sprintf_s(msg, sizeof(msg), "WTA: zmq_connect failed to %s", opts_.endpoint.c_str());
-            intercept::sqf::diag_log(msg);
+            LOG(ERROR) << "zmq_connect failed to " << opts_.endpoint;
             zmq_close(sock);
             return false;
         }
         
         std::string payload = serialize_request(req);
-        sprintf_s(msg, sizeof(msg), "WTA: Payload size: %d bytes", (int)payload.size());
-        intercept::sqf::diag_log(msg);
+        LOG(INFO) << "Sending payload: " << payload.substr(0, 200) << "...";
         
-        zmq_msg_t zmsg;
-        zmq_msg_init_size(&zmsg, payload.size());
-        memcpy(zmq_msg_data(&zmsg), payload.data(), payload.size());
+        zmq_msg_t msg;
+        zmq_msg_init_size(&msg, payload.size());
+        memcpy(zmq_msg_data(&msg), payload.data(), payload.size());
         
-        if (zmq_msg_send(&zmsg, sock, 0) < 0) {
-            intercept::sqf::diag_log("WTA: zmq_msg_send failed");
-            zmq_msg_close(&zmsg);
+        if (zmq_msg_send(&msg, sock, 0) < 0) {
+            LOG(ERROR) << "zmq_msg_send failed";
+            zmq_msg_close(&msg);
             zmq_close(sock);
             return false;
         }
-        zmq_msg_close(&zmsg);
-        
-        intercept::sqf::diag_log("WTA: Message sent, waiting for response...");
+        zmq_msg_close(&msg);
         
         zmq_msg_t rep;
         zmq_msg_init(&rep);
         int rc = zmq_msg_recv(&rep, sock, 0);
         
         if (rc < 0) {
-            intercept::sqf::diag_log("WTA: zmq_msg_recv failed");
+            LOG(ERROR) << "zmq_msg_recv failed";
             zmq_msg_close(&rep);
             zmq_close(sock);
             return false;
         }
-        
-        intercept::sqf::diag_log("WTA: Response received!");
         
         out.status = "ok";
         out.best_fitness = 0.0;
@@ -187,11 +156,12 @@ public:
         out.n_targets = 0;
         out.ttl_sec = 1.0;
         
+        LOG(INFO) << "Solve succeeded: fitness=" << out.best_fitness;
+        
         zmq_msg_close(&rep);
         zmq_close(sock);
         return true;
     }
-    
 private:
     ZmqSolverClientOptions opts_;
 };
@@ -206,11 +176,6 @@ std::unique_ptr<ISolverClient> make_zmq_solver_client(const ZmqSolverClientOptio
 class ZmqSolverClientStub final : public ISolverClient {
 public:
     explicit ZmqSolverClientStub(const ZmqSolverClientOptions&) {}
-    bool report_status(const wta::proto::StatusReportEvent&, milliseconds) override { return false; }
-    bool report_killed(const wta::proto::EntityKilledEvent&, milliseconds) override { return false; }
-    bool report_damage(const wta::proto::DamageEvent&, milliseconds) override { return false; }
-    bool report_fired(const wta::proto::FiredEvent&, milliseconds) override { return false; }
-    bool request_plan(const wta::proto::PlanRequest&, wta::proto::PlanResponse&, milliseconds) override { return false; }
     bool solve(const wta::proto::SolveRequest&, wta::proto::SolveResponse&, milliseconds) override { return false; }
 };
 

@@ -7,6 +7,9 @@ set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}\\scripts\\buildsystems\\vcpkg.cmake")
 message("CMAKE_TOOLCHAIN_FILE: ${CMAKE_TOOLCHAIN_FILE}")
 project (wtaPlugin)
 
+# Export compile commands for clangd
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 #This setting enables the use of the engine string type instead of converting to std::string.
 #Enabling this results in better pe+rformance when handling strings to SQF commands.
 option(USE_ENGINE_TYPES "USE_ENGINE_TYPES" OFF)
@@ -34,6 +37,49 @@ endif()
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+
+# Protocol Buffers
+find_package(Protobuf REQUIRED)
+message(STATUS "Protobuf version: ${Protobuf_VERSION}")
+message(STATUS "Protobuf include: ${Protobuf_INCLUDE_DIRS}")
+message(STATUS "Protobuf libraries: ${Protobuf_LIBRARIES}")
+
+# Generate protobuf C++ code
+set(PROTO_SRC_DIR "${PROJECT_SOURCE_DIR}/proto")
+set(PROTO_GEN_DIR "${PROJECT_BINARY_DIR}/generated")
+file(MAKE_DIRECTORY ${PROTO_GEN_DIR})
+
+set(PROTO_FILES
+    "${PROTO_SRC_DIR}/wta_messages.proto"
+)
+
+# 使用自定义命令生成 protobuf 代码
+set(PROTO_SRCS "${PROTO_GEN_DIR}/wta_messages.pb.cc")
+set(PROTO_HDRS "${PROTO_GEN_DIR}/wta_messages.pb.h")
+
+# 获取 protoc 可执行文件路径
+find_program(PROTOC_EXECUTABLE protoc REQUIRED)
+message(STATUS "Protoc executable: ${PROTOC_EXECUTABLE}")
+
+add_custom_command(
+    OUTPUT ${PROTO_SRCS} ${PROTO_HDRS}
+    COMMAND ${PROTOC_EXECUTABLE}
+    ARGS --cpp_out=${PROTO_GEN_DIR}
+         --proto_path=${PROTO_SRC_DIR}
+         ${PROTO_FILES}
+    DEPENDS ${PROTO_FILES}
+    COMMENT "Generating C++ code from wta_messages.proto"
+    VERBATIM
+)
+
+# 创建自定义目标以确保 protobuf 代码生成
+add_custom_target(generate_proto_cpp ALL DEPENDS ${PROTO_SRCS} ${PROTO_HDRS})
+
+set_source_files_properties(${PROTO_SRCS} ${PROTO_HDRS} PROPERTIES GENERATED TRUE)
+
+message(STATUS "Protobuf output dir: ${PROTO_GEN_DIR}")
+message(STATUS "Generated proto sources: ${PROTO_SRCS}")
+message(STATUS "Generated proto headers: ${PROTO_HDRS}")
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON) 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)

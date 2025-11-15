@@ -3,42 +3,24 @@
   "cmakeMinimumRequired": { "major": 3, "minor": 26 },
   "configurePresets": [
     {
-      "name": "win64-release",
-      "displayName": "Windows x64 Release",
-      "description": "Configure with Release using Visual Studio 2022 x64",
-      "generator": "Visual Studio 17 2022",
-      "architecture": {
-        "value": "x64"
-      },
-      "binaryDir": "${sourceDir}/build/vs-win64-release",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release",
-        "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
-        "ARMA3_DIR": "D:/SteamLibrary/steamapps/common/Arma 3",
-        "MOD_DIR": "D:/SteamLibrary/steamapps/common/Arma 3/@intercept-plugin-template",
-        "ADDON_BUILDER_EXE": "D:/SteamLibrary/steamapps/common/Arma 3 Tools/AddonBuilder/AddonBuilder.exe"
-      }
-    },
-    {
-      "name": "win64-debug",
-      "displayName": "Windows x64 Debug",
-      "description": "Configure with Debug using Visual Studio 2022 x64",
-      "generator": "Visual Studio 17 2022",
-      "architecture": {
-        "value": "x64"
-      },
-      "binaryDir": "${sourceDir}/build/vs-win64-debug",
+      "name": "ninja-debug-clangd",
+      "displayName": "Ninja Debug (for clangd)",
+      "description": "Configure with Ninja to generate compile_commands.json for clangd",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/ninja-debug",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
         "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+        "CMAKE_C_COMPILER": "cl.exe",
+        "CMAKE_CXX_COMPILER": "cl.exe",
+        "CMAKE_MAKE_PROGRAM": "D:/Program Files/Microsoft Visual Studio/2022/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja/ninja.exe",
         "ARMA3_DIR": "D:/SteamLibrary/steamapps/common/Arma 3",
         "MOD_DIR": "D:/SteamLibrary/steamapps/common/Arma 3/@intercept-plugin-template",
         "ADDON_BUILDER_EXE": "D:/SteamLibrary/steamapps/common/Arma 3 Tools/AddonBuilder/AddonBuilder.exe"
       }
     }
-  ],
+  ],  
   "buildPresets": [
-    { "name": "win64-release", "configurePreset": "win64-release", "configuration": "Release" },
-    { "name": "win64-debug",   "configurePreset": "win64-debug",   "configuration": "Debug" }
+    { "name": "ninja-debug-clangd", "configurePreset": "ninja-debug-clangd", "configuration": "Debug" }
   ]
 }

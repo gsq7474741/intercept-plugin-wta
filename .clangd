@@ -1,0 +1,9 @@
+CompileFlags:
+  CompilationDatabase: build/ninja-debug
+
+Diagnostics:
+  UnusedIncludes: None
+  MissingIncludes: None
+  
+Index:
+  Background: Build

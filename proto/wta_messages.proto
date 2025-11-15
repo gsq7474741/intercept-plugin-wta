@@ -1,0 +1,131 @@
+syntax = "proto3";
+
+package wta.pb;
+
+// ==================== 基础数据类型 ====================
+
+message Vec2 {
+  float x = 1;
+  float y = 2;
+}
+
+message AmmoState {
+  int32 missile = 1;
+  int32 bomb = 2;
+  int32 rocket = 3;
+}
+
+enum PlatformRole {
+  PLATFORM_ROLE_UNKNOWN = 0;
+  PLATFORM_ROLE_ANTI_PERSONNEL = 1;
+  PLATFORM_ROLE_ANTI_ARMOR = 2;
+  PLATFORM_ROLE_MULTI_ROLE = 3;
+}
+
+enum TargetKind {
+  TARGET_KIND_UNKNOWN = 0;
+  TARGET_KIND_INFANTRY = 1;
+  TARGET_KIND_ARMOR = 2;
+  TARGET_KIND_SAM = 3;
+  TARGET_KIND_OTHER = 4;
+}
+
+message PlatformState {
+  int32 id = 1;
+  PlatformRole role = 2;
+  Vec2 pos = 3;
+  bool alive = 4;
+  float hit_prob = 5;
+  float cost = 6;
+  float max_range = 7;
+  int32 max_targets = 8;
+  int32 quantity = 9;
+  AmmoState ammo = 10;
+  repeated int32 target_types = 11;
+}
+
+message TargetState {
+  int32 id = 1;
+  TargetKind kind = 2;
+  Vec2 pos = 3;
+  bool alive = 4;
+  float value = 5;
+  int32 tier = 6;
+}
+
+// ==================== 消息类型 ====================
+
+// 战场状态上报
+message StatusReportEvent {
+  double timestamp = 1;
+  repeated PlatformState platforms = 2;
+  repeated TargetState targets = 3;
+}
+
+// 实体击毁事件
+message EntityKilledEvent {
+  double timestamp = 1;
+  int32 entity_id = 2;
+  string entity_type = 3;  // "platform" or "target"
+  string killed_by = 4;
+}
+
+// 伤害事件
+message DamageEvent {
+  double timestamp = 1;
+  int32 entity_id = 2;
+  string entity_type = 3;
+  float damage_amount = 4;
+  string source = 5;
+}
+
+// 开火事件
+message FiredEvent {
+  double timestamp = 1;
+  int32 platform_id = 2;
+  int32 target_id = 3;
+  string weapon = 4;
+  int32 ammo_left = 5;
+}
+
+// WTA规划请求
+message PlanRequest {
+  double timestamp = 1;
+  string reason = 2;  // "replan", "ttl_expired", "manual"
+  repeated PlatformState platforms = 3;
+  repeated TargetState targets = 4;
+}
+
+// 规划统计
+message PlanStats {
+  double computation_time = 1;
+  int32 iterations = 2;
+  bool is_valid = 3;
+  double coverage_rate = 4;
+}
+
+// WTA规划响应
+message PlanResponse {
+  string status = 1;  // "ok", "error", "no_solution"
+  double timestamp = 2;
+  double best_fitness = 3;
+  map<int32, int32> assignment = 4;  // platform_id -> target_id
+  int32 n_platforms = 5;
+  int32 n_targets = 6;
+  PlanStats stats = 7;
+  double ttl_sec = 8;
+  string error_msg = 9;
+}
+
+// ==================== 统一消息包装器 ====================
+
+message WTAMessage {
+  oneof payload {
+    StatusReportEvent status_report = 1;
+    EntityKilledEvent entity_killed = 2;
+    DamageEvent damage = 3;
+    FiredEvent fired = 4;
+    PlanRequest plan_request = 5;
+    PlanResponse plan_response = 6;
+  }
+}

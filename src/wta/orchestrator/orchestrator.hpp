@@ -21,13 +21,15 @@ public:
     void stop();
 
 private:
-    void loop_solver();
-    void loop_executor();
+    void loop_reporter();   // 持续上报数据给前端
+    void loop_solver();     // 规划任务分配
+    void loop_executor();   // 执行任务
     bool need_replan(double now) const;
 
     std::atomic<bool> running_{false};
-    std::thread th_solver_;
-    std::thread th_executor_;
+    std::thread th_reporter_;   // 数据上报线程
+    std::thread th_solver_;     // 规划线程
+    std::thread th_executor_;   // 执行线程
 
     wta::events::EventBus& bus_;
     wta::net::ISolverClient& client_;
