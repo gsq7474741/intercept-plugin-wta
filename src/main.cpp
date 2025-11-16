@@ -34,6 +34,9 @@ static std::unique_ptr<wta::exec::IExecutor> g_executor;
 static std::unique_ptr<wta::orch::Orchestrator> g_orchestrator;
 static wta::events::EventBus g_event_bus;
 
+// 注意：不使用 on_frame() 回调，因为在该上下文中 sqf::get_pos() 可能返回缓存值
+// 采样在 Reporter 线程中进行，使用 invoker_lock 保证线程安全
+
 // Our custom function, instructing our follower unit to move to a location near the player every second
 void follow_player(object follower) {
     while (true) {

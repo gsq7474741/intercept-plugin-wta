@@ -3,7 +3,7 @@ cmake_minimum_required (VERSION 3.26)
 #----Make changes here
 
 #This is your project name. And also the filename of the resulting plugin.
-set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}\\scripts\\buildsystems\\vcpkg.cmake")
+# set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}\\scripts\\buildsystems\\vcpkg.cmake")
 message("CMAKE_TOOLCHAIN_FILE: ${CMAKE_TOOLCHAIN_FILE}")
 project (wtaPlugin)
 

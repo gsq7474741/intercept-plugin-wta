@@ -35,20 +35,21 @@ bool Orchestrator::need_replan(double now) const {
     return false;
 }
 
-// 数据上报循环：持续采样并发送数据给前端（不触发规划）
+// 数据上报循环：持续采样并发送数据给前端
 void Orchestrator::loop_reporter() {
     using namespace std::chrono_literals;
     while (running_) {
         const double t = now_sec();
         
-        // 采样当前战场状态
+        // 在Reporter线程中采样
+        // 注意：sampler_.sample()内部使用invoker_lock保证线程安全
         wta::proto::StatusReportEvent event{};
         event.timestamp = t;
         
-        // 使用临时request来采样（复用sampler接口）
+        // 使用临时request来采样
         wta::proto::SolveRequest temp_req{};
         temp_req.timestamp = t;
-        sampler_.sample(temp_req);
+        sampler_.sample(temp_req);  // 内部有invoker_lock
         
         // 转换为StatusReport格式
         event.platforms = std::move(temp_req.platforms);

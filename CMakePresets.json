@@ -8,9 +8,13 @@
       "description": "Configure with Ninja to generate compile_commands.json for clangd",
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/build/ninja-debug",
+      "environment": {
+        "VCPKG_ROOT": "D:/vcpkg"
+      },
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+        "CMAKE_TOOLCHAIN_FILE": "D:/vcpkg/scripts/buildsystems/vcpkg.cmake",
+        "VCPKG_INSTALLED_DIR": "${sourceDir}/vcpkg_installed",
         "CMAKE_C_COMPILER": "cl.exe",
         "CMAKE_CXX_COMPILER": "cl.exe",
         "CMAKE_MAKE_PROGRAM": "D:/Program Files/Microsoft Visual Studio/2022/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja/ninja.exe",

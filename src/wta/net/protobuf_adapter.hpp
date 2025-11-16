@@ -19,6 +19,14 @@ inline void to_proto(const wta::types::AmmoState& from, wta::pb::AmmoState* to) 
     to->set_rocket(from.rocket);
 }
 
+inline void to_proto(const wta::types::MagazineDetail& from, wta::pb::MagazineDetail* to) {
+    to->set_name(from.name);
+    to->set_ammo_count(from.ammo_count);
+    to->set_loaded(from.loaded);
+    to->set_type(from.type);
+    to->set_location(from.location);
+}
+
 inline wta::pb::PlatformRole to_proto_role(wta::types::PlatformRole role) {
     switch (role) {
         case wta::types::PlatformRole::AntiPersonnel:
@@ -61,6 +69,17 @@ inline void to_proto(const wta::types::PlatformState& from, wta::pb::PlatformSta
     for (int tt : from.target_types) {
         to->add_target_types(tt);
     }
+    to->set_platform_type(from.platform_type);
+    
+    // 弹夹详细信息
+    for (const auto& mag : from.magazines) {
+        auto* pb_mag = to->add_magazines();
+        to_proto(mag, pb_mag);
+    }
+    
+    // 油量和损伤
+    to->set_fuel(from.fuel);
+    to->set_damage(from.damage);
 }
 
 inline void to_proto(const wta::types::TargetState& from, wta::pb::TargetState* to) {

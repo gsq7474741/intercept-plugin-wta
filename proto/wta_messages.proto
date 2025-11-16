@@ -15,6 +15,15 @@ message AmmoState {
   int32 rocket = 3;
 }
 
+// 弹夹详细信息
+message MagazineDetail {
+  string name = 1;        // 弹夹类名（如 "2Rnd_GBU12_LGB"）
+  int32 ammo_count = 2;   // 剩余弹药数
+  bool loaded = 3;        // 是否装载中
+  int32 type = 4;         // 类型
+  string location = 5;    // 位置（如 "vest", "uniform", "backpack"）
+}
+
 enum PlatformRole {
   PLATFORM_ROLE_UNKNOWN = 0;
   PLATFORM_ROLE_ANTI_PERSONNEL = 1;
@@ -42,6 +51,10 @@ message PlatformState {
   int32 quantity = 9;
   AmmoState ammo = 10;
   repeated int32 target_types = 11;
+  string platform_type = 12;           // 平台类型名称（如 "B_UAV_02_dynamicLoadout_F"）
+  repeated MagazineDetail magazines = 13;  // 弹夹详细信息列表
+  float fuel = 14;                     // 剩余油量 (0.0-1.0)
+  float damage = 15;                   // 总体损伤 (0.0-1.0, 0=无损伤, 1=完全损毁)
 }
 
 message TargetState {
@@ -51,6 +64,8 @@ message TargetState {
   bool alive = 4;
   float value = 5;
   int32 tier = 6;
+  string target_type = 7;                  // 目标类型名称（如 "预警雷达站"）
+  repeated int32 prerequisite_targets = 8; // 前置目标ID列表（时序约束必需）
 }
 
 // ==================== 消息类型 ====================

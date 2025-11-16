@@ -51,6 +51,7 @@ target_compile_definitions(wta_core PUBLIC WTA_HAVE_GLOG=1)
 
 file(GLOB WTA_RUNTIME_SOURCES
   "wta/world/world_sampler_intercept.cpp"
+  "wta/world/world_config.cpp"
   "wta/exec/executor_intercept.cpp"
 )
 add_library(wta_runtime STATIC ${WTA_RUNTIME_SOURCES})

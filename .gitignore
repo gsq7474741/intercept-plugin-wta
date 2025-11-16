@@ -35,6 +35,8 @@
 # Others
 .vs
 build
+vcpkg_installed
+docs_dev
 
 # CMake
 CMakeCache.txt
