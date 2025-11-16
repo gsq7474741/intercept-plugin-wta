@@ -1,3 +1,6 @@
 [submodule "intercept"]
 	path = intercept
 	url = https://github.com/intercept/intercept.git
+[submodule "wta-dashboard"]
+	path = wta-dashboard
+	url = https://github.com/gsq7474741/wta-dashboard.git
