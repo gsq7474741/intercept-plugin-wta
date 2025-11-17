@@ -4,3 +4,6 @@
 [submodule "wta-dashboard"]
 	path = wta-dashboard
 	url = https://github.com/gsq7474741/wta-dashboard.git
+[submodule "arma3-wiki-crawler"]
+	path = arma3-wiki-crawler
+	url = https://github.com/gsq7474741/arma3-wiki-crawler.git
