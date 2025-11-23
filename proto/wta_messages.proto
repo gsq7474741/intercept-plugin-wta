@@ -25,18 +25,18 @@ message MagazineDetail {
 }
 
 enum PlatformRole {
-  PLATFORM_ROLE_UNKNOWN = 0;
-  PLATFORM_ROLE_ANTI_PERSONNEL = 1;
-  PLATFORM_ROLE_ANTI_ARMOR = 2;
-  PLATFORM_ROLE_MULTI_ROLE = 3;
+  PLATFORM_ROLE_ANTI_PERSONNEL = 0;  // 对应 C++ AntiPersonnel
+  PLATFORM_ROLE_ANTI_ARMOR = 1;      // 对应 C++ AntiArmor
+  PLATFORM_ROLE_MULTI_ROLE = 2;      // 对应 C++ MultiRole
+  PLATFORM_ROLE_UNKNOWN = 3;         // 对应 C++ Unknown
 }
 
 enum TargetKind {
-  TARGET_KIND_UNKNOWN = 0;
-  TARGET_KIND_INFANTRY = 1;
-  TARGET_KIND_ARMOR = 2;
-  TARGET_KIND_SAM = 3;
-  TARGET_KIND_OTHER = 4;
+  TARGET_KIND_INFANTRY = 0;    // 对应 C++ Infantry
+  TARGET_KIND_ARMOR = 1;       // 对应 C++ Armor
+  TARGET_KIND_SAM = 2;         // 对应 C++ SAM
+  TARGET_KIND_OTHER = 3;       // 对应 C++ Other
+  TARGET_KIND_UNKNOWN = 4;     // 对应 C++ Unknown (不使用)
 }
 
 message PlatformState {
@@ -132,6 +132,27 @@ message PlanResponse {
   string error_msg = 9;
 }
 
+// 日志级别
+enum LogLevel {
+  LOG_LEVEL_DEBUG = 0;
+  LOG_LEVEL_INFO = 1;
+  LOG_LEVEL_WARNING = 2;
+  LOG_LEVEL_ERROR = 3;
+  LOG_LEVEL_FATAL = 4;
+}
+
+// 日志消息
+message LogMessage {
+  double timestamp = 1;          // Unix 时间戳
+  LogLevel level = 2;            // 日志级别
+  string file = 3;               // 源文件名
+  int32 line = 4;                // 行号
+  string function = 5;           // 函数名
+  string message = 6;            // 日志内容
+  int32 thread_id = 7;           // 线程 ID
+  string component = 8;          // 组件名称（如 "Orchestrator", "WorldSampler"）
+}
+
 // ==================== 统一消息包装器 ====================
 
 message WTAMessage {
@@ -142,5 +163,6 @@ message WTAMessage {
     FiredEvent fired = 4;
     PlanRequest plan_request = 5;
     PlanResponse plan_response = 6;
+    LogMessage log = 7;
   }
 }

@@ -18,6 +18,12 @@ file(GLOB_RECURSE WTA_CORE_SOURCES
 )
 # Exclude backup files from compilation
 list(FILTER WTA_CORE_SOURCES EXCLUDE REGEX ".*_backup\\.(cpp|hpp)$")
+
+# Explicitly add log_sink_zmq.cpp to ensure it's compiled
+list(APPEND WTA_CORE_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/wta/net/log_sink_zmq.cpp")
+
+# Debug: print all source files
+message(STATUS "WTA_CORE_SOURCES: ${WTA_CORE_SOURCES}")
 # Add protobuf generated sources to wta_core
 add_library(wta_core STATIC ${WTA_CORE_SOURCES} ${PROTO_SRCS} ${PROTO_HDRS})
 
@@ -53,6 +59,11 @@ file(GLOB WTA_RUNTIME_SOURCES
   "wta/world/world_sampler_intercept.cpp"
   "wta/world/world_config.cpp"
   "wta/exec/executor_intercept.cpp"
+  "wta/exec/uav_entity.cpp"
+  "wta/exec/uav_controller.cpp"
+  "wta/exec/task_executor.cpp"
+  "wta/exec/entity_registry.cpp"
+  "wta/exec/sequential_attack_test.cpp"
 )
 add_library(wta_runtime STATIC ${WTA_RUNTIME_SOURCES})
 target_include_directories(wta_runtime PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${INTERCEPT_INCLUDE_PATH})

@@ -5,8 +5,10 @@
 #include <glog/logging.h>
 #include "wta/world/world_sampler.hpp"
 #include "wta/exec/executor.hpp"
+#include "wta/exec/sequential_attack_test.hpp"
 #include "wta/orchestrator/orchestrator.hpp"
 #include "wta/net/solver_client.hpp"
+#include "wta/net/log_sink_zmq.hpp"
 #include "wta/world/event_bus.hpp"
 
 
@@ -27,6 +29,12 @@ void intercept::pre_init() {
 }
 
 using namespace intercept;
+
+namespace {
+// 测试开关：true 时启用顺序打击测试模式（不启动 Orchestrator / ZMQ 规划）
+// false 时运行正常的 Orchestrator + ZMQ 工作流
+constexpr bool kEnableSequentialAttackTest = true;
+}
 
 static std::unique_ptr<wta::net::ISolverClient> g_solver_client;
 static std::unique_ptr<wta::world::IWorldSampler> g_sampler;
@@ -69,7 +77,15 @@ void follow_player(object follower) {
 void intercept::post_init() {
     google::InitGoogleLogging("wtaPlugin");
     LOG(INFO) << "WTA plugin post_init starting...";
-    
+
+    // ===== 顺序打击测试模式（仅用于验证 C++ 插件控制能力） =====
+    if (kEnableSequentialAttackTest) {
+        sqf::system_chat("WTA TEST: Sequential attack test mode enabled");
+        sqf::diag_log("WTA TEST: Starting sequential attack test (no Orchestrator / ZMQ)");
+        wta::test::start_sequential_attack_test();
+        return;
+    }
+
     // Get the player object and store it
     auto player = sqf::player();
     // Get the position of the player, returned as a Vector3 in PositionAGLS format
@@ -106,6 +122,13 @@ void intercept::post_init() {
     wta::net::ZmqSolverClientOptions zmq_opts{};
     zmq_opts.endpoint = "tcp://127.0.0.1:5555";
     g_solver_client = wta::net::make_zmq_solver_client(zmq_opts);
+    
+    // 启用日志流传输到 Dashboard
+    auto solver_client_ptr = std::shared_ptr<wta::net::ISolverClient>(g_solver_client.get(), [](auto*){});
+    wta::net::LogSinkManager::instance().initialize(solver_client_ptr, "WTA-Plugin");
+    wta::net::LogSinkManager::instance().enable();
+    LOG(INFO) << "Log streaming enabled";
+    
     g_sampler = wta::world::make_intercept_world_sampler();
     g_executor = wta::exec::make_intercept_executor();
     g_orchestrator = std::make_unique<wta::orch::Orchestrator>(g_event_bus, *g_solver_client, *g_sampler, *g_executor);

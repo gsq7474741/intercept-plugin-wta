@@ -287,4 +287,21 @@ inline bool deserialize_plan_response(const std::string& data, wta::proto::PlanR
     return true;
 }
 
+// 将LogMessage序列化为WTAMessage
+inline std::string serialize_log(const wta::proto::LogMessage& log_msg) {
+    wta::pb::LogMessage pb_log;
+    pb_log.set_timestamp(log_msg.timestamp);
+    pb_log.set_level(static_cast<wta::pb::LogLevel>(log_msg.level));
+    pb_log.set_file(log_msg.file);
+    pb_log.set_line(log_msg.line);
+    pb_log.set_function(log_msg.function);
+    pb_log.set_message(log_msg.message);
+    pb_log.set_thread_id(log_msg.thread_id);
+    pb_log.set_component(log_msg.component);
+    
+    wta::pb::WTAMessage msg;
+    *msg.mutable_log() = pb_log;
+    return serialize_protobuf(msg);
+}
+
 } // namespace wta::net

@@ -76,7 +76,6 @@ bool send_zmq_message(const std::string& endpoint, const std::string& payload,
         }
         *response = std::string((char*)zmq_msg_data(&rep), zmq_msg_size(&rep));
         zmq_msg_close(&rep);
-        WTA_LOG(INFO) << "Received response: " << response->size() << " bytes";
     }
     
     zmq_close(sock);
@@ -117,6 +116,13 @@ public:
         WTA_LOG(INFO) << "Reporting fired: platform #" << event.platform_id 
                       << " -> target #" << event.target_id;
         std::string payload = wta::net::serialize_fired(event);
+        // fire-and-forget
+        return send_zmq_message(opts_.endpoint, payload, nullptr, timeout);
+    }
+    
+    bool send_log(const wta::proto::LogMessage& log_msg, milliseconds timeout) override {
+        // 不使用 WTA_LOG，避免递归
+        std::string payload = wta::net::serialize_log(log_msg);
         // fire-and-forget
         return send_zmq_message(opts_.endpoint, payload, nullptr, timeout);
     }

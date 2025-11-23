@@ -17,12 +17,11 @@ trigger: always_on
 - 使用cmake构建，配置在CMakePresets.json里
 - 使用ninja生成器
 - 使用vs 2022的msvc编译器，编译到64位
+- 新增功能时，尽可能频繁查阅intercept库源码，保证准确性
 
 ### 构建
 
-当执行构建或cmake命令时，需要先激活vs环境，使用powershell，激活命令如下
-
-Import-Module "D:\Program Files\Microsoft Visual Studio\2022\Community\Common7\Tools\Microsoft.VisualStudio.DevShell.dll"; Enter-VsDevShell 97c66f96
+当执行编译或cmake命令时，需要先激活vs环境，使用powershell，激活命令如下
 
 新增功能后你需要自行构建测试直到编译通过，只要需要启动游戏和人工干预时再停下来找我，否则一直运行
 

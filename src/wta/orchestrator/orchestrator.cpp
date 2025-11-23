@@ -1,4 +1,5 @@
 #include "orchestrator.hpp"
+#include "../net/log_sink_zmq.hpp"
 #include <chrono>
 
 namespace wta::orch {
@@ -11,6 +12,11 @@ static inline double now_sec() {
 
 void Orchestrator::start() {
     if (running_.exchange(true)) return;
+    
+    // 注意：日志流传输需要在主程序中手动启用
+    // 因为 Orchestrator 只保存引用，无法传递给 LogSinkManager
+    LOG(INFO) << "Orchestrator starting";
+    
     th_reporter_ = std::thread(&Orchestrator::loop_reporter, this);
     th_solver_ = std::thread(&Orchestrator::loop_solver, this);
     th_executor_ = std::thread(&Orchestrator::loop_executor, this);
@@ -101,18 +107,15 @@ void Orchestrator::loop_solver() {
             wta::proto::PlanResponse plan_resp{};
             const auto ok = client_.request_plan(plan_req, plan_resp, 1000ms);
             if (ok && plan_resp.status == "ok") {
-                // 转换为旧格式供executor使用（临时兼容）
-                wta::proto::SolveResponse legacy_resp{};
-                legacy_resp.status = plan_resp.status;
-                legacy_resp.assignment = std::move(plan_resp.assignment);
-                legacy_resp.ttl_sec = plan_resp.ttl_sec;
-                
-                last_resp_ = legacy_resp;
+                // 保存规划结果
+                last_resp_ = plan_resp;
                 last_solve_ts_ = t;
                 ttl_sec_ = plan_resp.ttl_sec;
                 next_allowed_solve_ts_ = t + 0.5; // 节流窗口
                 pending_replan_ = false;
-                exec_.apply_assignment(legacy_resp);
+                
+                // 应用分配方案（executor 应该接受 PlanResponse）
+                exec_.apply_assignment(plan_resp);
             } else {
                 // 失败：维持旧解，稍后重试
                 next_allowed_solve_ts_ = t + 0.5;

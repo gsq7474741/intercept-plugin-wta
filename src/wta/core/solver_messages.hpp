@@ -27,7 +27,17 @@ enum class MessageType {
     Damage,           // 伤害事件
     Fired,            // 开火事件
     PlanRequest,      // 请求WTA规划
-    PlanResponse      // WTA规划响应
+    PlanResponse,     // WTA规划响应
+    Log               // 日志消息
+};
+
+// 日志级别
+enum class LogLevel {
+    Debug = 0,
+    Info = 1,
+    Warning = 2,
+    Error = 3,
+    Fatal = 4
 };
 
 // ==================== 数据上报消息 ====================
@@ -67,6 +77,18 @@ struct FiredEvent {
     int target_id{0};
     std::string weapon;
     int ammo_left{0};
+};
+
+// 日志消息
+struct LogMessage {
+    double timestamp{0.0};
+    LogLevel level{LogLevel::Info};
+    std::string file;
+    int line{0};
+    std::string function;
+    std::string message;
+    int thread_id{0};
+    std::string component;
 };
 
 // ==================== WTA规划消息 ====================

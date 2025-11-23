@@ -16,7 +16,7 @@ struct EngagementAction {
 
 struct IExecutor {
     virtual ~IExecutor() = default;
-    virtual void apply_assignment(const wta::proto::SolveResponse& resp) = 0;
+    virtual void apply_assignment(const wta::proto::PlanResponse& resp) = 0;
     virtual void tick() = 0;
 };
 

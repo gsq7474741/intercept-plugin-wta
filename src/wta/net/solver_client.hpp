@@ -29,6 +29,10 @@ struct ISolverClient {
     virtual bool report_fired(const wta::proto::FiredEvent& event,
                              milliseconds timeout = milliseconds(200)) = 0;
     
+    // 发送日志消息（fire-and-forget，不需要响应）
+    virtual bool send_log(const wta::proto::LogMessage& log_msg,
+                         milliseconds timeout = milliseconds(100)) = 0;
+    
     // 请求WTA规划
     virtual bool request_plan(const wta::proto::PlanRequest& req,
                              wta::proto::PlanResponse& out,

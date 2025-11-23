@@ -36,7 +36,7 @@ private:
     wta::world::IWorldSampler& sampler_;
     wta::exec::IExecutor& exec_;
 
-    std::optional<wta::proto::SolveResponse> last_resp_{};
+    std::optional<wta::proto::PlanResponse> last_resp_{};
     double last_solve_ts_{0.0};
     double next_allowed_solve_ts_{0.0};
     double ttl_sec_{2.0};

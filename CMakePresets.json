@@ -3,7 +3,7 @@
   "cmakeMinimumRequired": { "major": 3, "minor": 26 },
   "configurePresets": [
     {
-      "name": "ninja-debug-clangd",
+      "name": "win64",
       "displayName": "Ninja Debug (for clangd)",
       "description": "Configure with Ninja to generate compile_commands.json for clangd",
       "generator": "Ninja",
@@ -25,6 +25,6 @@
     }
   ],  
   "buildPresets": [
-    { "name": "ninja-debug-clangd", "configurePreset": "ninja-debug-clangd", "configuration": "Debug" }
+    { "name": "win64", "configurePreset": "win64", "configuration": "Debug" }
   ]
 }
