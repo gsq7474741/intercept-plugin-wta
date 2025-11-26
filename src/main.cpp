@@ -41,6 +41,7 @@ static std::unique_ptr<wta::world::IWorldSampler> g_sampler;
 static std::unique_ptr<wta::exec::IExecutor> g_executor;
 static std::unique_ptr<wta::orch::Orchestrator> g_orchestrator;
 static wta::events::EventBus g_event_bus;
+static bool g_glog_initialized = false;
 
 // 注意：不使用 on_frame() 回调，因为在该上下文中 sqf::get_pos() 可能返回缓存值
 // 采样在 Reporter 线程中进行，使用 invoker_lock 保证线程安全
@@ -75,7 +76,11 @@ void follow_player(object follower) {
 
 // This function is exported and is called by the host at the end of mission initialization.
 void intercept::post_init() {
-    google::InitGoogleLogging("wtaPlugin");
+    // glog 只能初始化一次，重复调用会导致断言失败
+    if (!g_glog_initialized) {
+        google::InitGoogleLogging("wtaPlugin");
+        g_glog_initialized = true;
+    }
     LOG(INFO) << "WTA plugin post_init starting...";
 
     // ===== 顺序打击测试模式（仅用于验证 C++ 插件控制能力） =====
@@ -136,4 +141,32 @@ void intercept::post_init() {
     // LOG(INFO) << "WTA plugin initialized successfully";
     sqf::system_chat("WTA: Plugin initialized successfully!");
     sqf::diag_log("WTA: Plugin initialized successfully!");
+}
+
+// 任务结束时清理资源，防止第二次运行时崩溃
+void intercept::mission_ended() {
+    LOG(INFO) << "WTA plugin mission_ended - cleaning up resources...";
+    
+    // 1. 停止测试线程
+    if (kEnableSequentialAttackTest) {
+        wta::test::stop_sequential_attack_test();
+        // 等待测试线程退出
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    }
+    
+    // 2. 停止 Orchestrator（会停止所有内部线程）
+    if (g_orchestrator) {
+        g_orchestrator->stop();
+        g_orchestrator.reset();
+    }
+    
+    // 3. 关闭日志流
+    wta::net::LogSinkManager::instance().shutdown();
+    
+    // 4. 清理其他资源
+    g_executor.reset();
+    g_sampler.reset();
+    g_solver_client.reset();
+    
+    LOG(INFO) << "WTA plugin cleanup complete";
 }

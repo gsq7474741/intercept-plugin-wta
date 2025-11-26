@@ -197,7 +197,10 @@ void TaskExecutor::handle_navigate_stage(AttackTask& task) {
     
     // 检查是否到达接近距离
     if (controller_.has_reached(*uav, task.target_pos, task.approach_distance)) {
-        sqf::diag_log("[WTA][TASK] UAV " + std::to_string(task.platform_id) + " reached approach distance, entering Approach stage");
+        {
+            client::invoker_lock lock;  // 【线程安全】锁保护日志输出
+            sqf::diag_log("[WTA][TASK] UAV " + std::to_string(task.platform_id) + " reached approach distance, entering Approach stage");
+        }
         task.stage = TaskStage::Approach;
         uav->set_status(UavStatus::NavigatingToTarget);
     }
@@ -219,7 +222,10 @@ void TaskExecutor::handle_approach_stage(AttackTask& task) {
     
     // 检查是否在交战距离内
     if (controller_.is_in_range(*uav, *target, task.engagement_distance)) {
-        sqf::diag_log("[WTA][TASK] UAV " + std::to_string(task.platform_id) + " in engagement range, entering Aiming stage");
+        {
+            client::invoker_lock lock;  // 【线程安全】锁保护日志输出
+            sqf::diag_log("[WTA][TASK] UAV " + std::to_string(task.platform_id) + " in engagement range, entering Aiming stage");
+        }
         task.stage = TaskStage::Aiming;
         uav->set_status(UavStatus::Aiming);
     } else {
@@ -245,14 +251,20 @@ void TaskExecutor::handle_aiming_stage(AttackTask& task) {
     
     // 先确保还在交战距离内（UAV可能飞过了）
     if (!controller_.is_in_range(*uav, *target, task.engagement_distance)) {
-        sqf::diag_log("[WTA][TASK] UAV " + std::to_string(task.platform_id) + " out of range, returning to Approach");
+        {
+            client::invoker_lock lock;  // 【线程安全】锁保护日志输出
+            sqf::diag_log("[WTA][TASK] UAV " + std::to_string(task.platform_id) + " out of range, returning to Approach");
+        }
         task.stage = TaskStage::Approach;
         return;
     }
     
     // 瞄准目标
     if (controller_.aim_at(*uav, *target)) {
-        sqf::diag_log("[WTA][TASK] UAV " + std::to_string(task.platform_id) + " aimed, entering Firing stage");
+        {
+            client::invoker_lock lock;  // 【线程安全】锁保护日志输出
+            sqf::diag_log("[WTA][TASK] UAV " + std::to_string(task.platform_id) + " aimed, entering Firing stage");
+        }
         task.stage = TaskStage::Firing;
         uav->set_status(UavStatus::Firing);
     } else {
@@ -265,6 +277,10 @@ void TaskExecutor::handle_aiming_stage(AttackTask& task) {
     }
 }
 
+// ============================================================================
+// 【仿照 fn_execution.sqf 重写】Firing 阶段
+// 核心：记录弹药、设置攻击状态，让 AI 自动开火
+// ============================================================================
 void TaskExecutor::handle_firing_stage(AttackTask& task) {
     auto* uav = find_uav(task.platform_id);
     auto* target = find_target(task.target_id);
@@ -282,17 +298,35 @@ void TaskExecutor::handle_firing_stage(AttackTask& task) {
     // 选择武器
     if (task.weapon.empty()) {
         task.weapon = uav->get_best_weapon();
-        sqf::diag_log("[WTA][TASK] UAV " + std::to_string(task.platform_id) + " selected weapon: " + task.weapon);
+        {
+            client::invoker_lock lock;
+            sqf::diag_log("[WTA][TASK] UAV " + std::to_string(task.platform_id) + 
+                         " selected weapon: " + task.weapon);
+        }
     }
     
-    // 开火
-    sqf::diag_log("[WTA][TASK] UAV " + std::to_string(task.platform_id) + " attempting to fire at target");
+    // 【仿照 fn_execution.sqf】记录开火前弹药数量
+    task.ammo_before_fire = controller_.get_total_ammo(*uav);
+    {
+        client::invoker_lock lock;
+        sqf::diag_log("[WTA][TASK] UAV " + std::to_string(task.platform_id) + 
+                     " ammo before fire: " + std::to_string(task.ammo_before_fire));
+    }
+    
+    // 设置攻击状态（不直接开火，让 AI 自动开火）
     if (controller_.fire_at(*uav, *target, task.weapon)) {
-        sqf::diag_log("[WTA][TASK] UAV " + std::to_string(task.platform_id) + " fired, entering Verify stage");
+        // 记录开火命令发送时间
+        task.fire_command_time = AttackTask::clock::now();
         task.stage = TaskStage::Verify;
         uav->set_status(UavStatus::Firing);
+        
+        {
+            client::invoker_lock lock;
+            sqf::diag_log("[WTA][TASK] UAV " + std::to_string(task.platform_id) + 
+                         " attack state configured, entering Verify stage (waiting for AI auto-fire)");
+        }
     } else {
-        // 开火失败，重试
+        // 设置失败，重试
         if (task.can_retry()) {
             task.mark_retry();
         } else {
@@ -301,20 +335,75 @@ void TaskExecutor::handle_firing_stage(AttackTask& task) {
     }
 }
 
+// ============================================================================
+// 【仿照 fn_execution.sqf 重写】Verify 阶段
+// 核心：检查弹药消耗判断是否发射成功，不成功则重试
+// ============================================================================
 void TaskExecutor::handle_verify_stage(AttackTask& task) {
+    auto* uav = find_uav(task.platform_id);
     auto* target = find_target(task.target_id);
     
-    // 等待一小段时间让武器到达目标
-    if (task.elapsed_time() < 2.0) {
-        return;  // 还没到验证时间
+    // 【仿照 fn_execution.sqf】等待更长时间让 AI 开火
+    // fn_execution.sqf 等待了 sleep 5 + sleep 3 = 8 秒
+    auto elapsed = std::chrono::duration<double>(
+        AttackTask::clock::now() - task.fire_command_time).count();
+    
+    if (elapsed < 5.0) {
+        return;  // 还没到验证时间，继续等待 AI 开火
     }
     
-    // 检查目标是否被摧毁
+    // 目标已被摧毁
     if (is_target_destroyed(target)) {
+        {
+            client::invoker_lock lock;
+            sqf::diag_log("[WTA][TASK] 🎯 Target " + std::to_string(task.target_id) + 
+                         " destroyed! UAV " + std::to_string(task.platform_id) + " mission completed");
+        }
         task.mark_completed();
+        return;
+    }
+    
+    // 【仿照 fn_execution.sqf】检查弹药是否消耗
+    if (uav && uav->is_alive()) {
+        bool ammo_consumed = controller_.check_ammo_consumed(*uav, task.ammo_before_fire);
+        
+        if (ammo_consumed) {
+            // 弹药已消耗 = 成功发射
+            {
+                client::invoker_lock lock;
+                sqf::diag_log("[WTA][TASK] ✅ UAV " + std::to_string(task.platform_id) + 
+                             " fired successfully (ammo consumed), target still alive, entering Egress");
+            }
+            task.stage = TaskStage::Egress;
+        } else {
+            // 弹药未消耗 = 发射失败，重试
+            {
+                client::invoker_lock lock;
+                sqf::diag_log("[WTA][TASK] ❌ UAV " + std::to_string(task.platform_id) + 
+                             " fire failed (no ammo consumed), retry " + 
+                             std::to_string(task.retry_count + 1) + "/" + 
+                             std::to_string(task.max_retries));
+            }
+            
+            if (task.can_retry()) {
+                task.mark_retry();
+                
+                // 【仿照 fn_execution.sqf】重新接近目标后再次尝试
+                if (target && target->is_alive()) {
+                    task.target_pos = target->position();
+                    controller_.navigate_to(*uav, task.target_pos, 100.f);
+                }
+            } else {
+                {
+                    client::invoker_lock lock;
+                    sqf::diag_log("[WTA][TASK] ❌ UAV " + std::to_string(task.platform_id) + 
+                                 " max retries reached, mission failed");
+                }
+                task.mark_failed();
+            }
+        }
     } else {
-        // 目标未摧毁，进入撤离阶段
-        task.stage = TaskStage::Egress;
+        task.mark_failed();
     }
 }
 

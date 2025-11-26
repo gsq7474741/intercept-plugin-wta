@@ -151,6 +151,8 @@ std::shared_ptr<TargetEntity> EntityRegistry::create_target_from_object(
     const intercept::types::object& obj) {
     
     try {
+        client::invoker_lock lock;  // 【线程安全】必须加锁
+        
         auto target = std::make_shared<TargetEntity>(id, obj);
         
         // 根据目标类型设置威胁等级
@@ -207,6 +209,8 @@ bool EntityRegistry::is_enemy(const intercept::types::object& obj) const {
 
 int EntityRegistry::get_or_assign_target_id(const intercept::types::object& obj) {
     try {
+        client::invoker_lock lock;  // 【线程安全】必须加锁
+        
         // 首先检查对象是否有 wta_target_id 变量
         auto target_id_var = sqf::get_variable(obj, "wta_target_id");
         if (!target_id_var.is_nil()) {

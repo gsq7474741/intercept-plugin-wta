@@ -77,6 +77,53 @@ public:
      */
     void stop(UavEntity& uav);
     
+    // ========== 【新增】仿照 fn_execution.sqf 的函数 ==========
+    
+    /**
+     * @brief 设置攻击高度（根据武器类型自动选择）
+     * 仿照 fn_execution.sqf 的 flyInHeight 逻辑
+     * - Missile: 200m
+     * - Bomb: 150m
+     * - Rocket: 100m
+     * @param uav UAV实体
+     * @param weapon 武器名称
+     * @return 是否成功设置
+     */
+    bool set_attack_height(UavEntity& uav, const std::string& weapon);
+    
+    /**
+     * @brief 获取 UAV 的总弹药数量（排除非消耗性物品）
+     * 仿照 fn_execution.sqf 的 magazinesAmmo 逻辑
+     * @param uav UAV实体
+     * @return 弹药总数
+     */
+    int get_total_ammo(const UavEntity& uav) const;
+    
+    /**
+     * @brief 检查弹药是否被消耗（用于验证开火成功）
+     * 仿照 fn_execution.sqf 的弹药检测逻辑
+     * @param uav UAV实体
+     * @param ammo_before 开火前的弹药数量
+     * @return 是否有弹药被消耗
+     */
+    bool check_ammo_consumed(const UavEntity& uav, int ammo_before) const;
+    
+    // ========== 【激光目标】绕过 AI 射击限制 ==========
+    
+    /**
+     * @brief 为目标创建激光标记
+     * 创建一个 LaserTarget 对象并附加到目标上
+     * 激光制导武器（Scalpel、GBU-12等）会自动追踪该激光目标
+     * @param target 目标实体
+     */
+    void create_laser_target(const TargetEntity& target);
+    
+    /**
+     * @brief 移除目标的激光标记
+     * @param target 目标实体
+     */
+    void remove_laser_target(const TargetEntity& target);
+    
 private:
     // 计算两点之间的距离
     float distance(const wta::types::Vec2& a, const wta::types::Vec2& b) const;

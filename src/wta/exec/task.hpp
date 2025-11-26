@@ -41,16 +41,21 @@ struct AttackTask {
     TaskStage stage{TaskStage::Pending};    // 当前阶段
     
     // 执行参数
-    float approach_distance{2000.f};        // 接近距离（米）- 更早开始接近
-    float engagement_distance{1500.f};      // 交战距离（米）- 考虑UAV高度
-    int max_retries{3};                     // 最大重试次数
+    // 【优化】减小距离以提高武器精度
+    float approach_distance{600.f};         // 接近距离（米）- 更近以便瞄准
+    float engagement_distance{400.f};       // 交战距离（米）- 更近才开火，提高精度
+    int max_retries{10};                    // 最大重试次数
     int retry_count{0};                     // 当前重试次数
+    
+    // 【新增】仿照 fn_execution.sqf 的弹药跟踪
+    int ammo_before_fire{0};                // 开火前弹药数量
     
     // 时间戳
     using clock = std::chrono::steady_clock;
     clock::time_point created_time;
     clock::time_point started_time;
     clock::time_point completed_time;
+    clock::time_point fire_command_time;    // 发送开火命令的时间
     
     AttackTask() : created_time(clock::now()) {}
     
